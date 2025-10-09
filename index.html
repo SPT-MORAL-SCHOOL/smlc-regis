@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ระบบรับสมัครคณะกรรมการนักเรียนขับเคลื่อนโรงเรียนคุณธรรม สพฐ. โรงเรียนสตรีพัทลุง</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    // ======== Firebase Config ========
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth, signInWithEmailAndPassword, signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_DOMAIN.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_BUCKET.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // ======== Helper ========
+    const $ = (s) => document.querySelector(s);
+    const show = (id) => { document.querySelectorAll('.page').forEach(p => p.classList.add('hidden')); $(id).classList.remove('hidden'); };
+    const formatDate = (t) => t ? new Date(t.seconds * 1000).toLocaleString('th-TH') : "-";
+
+    // ======== Navigation ========
+    window.showPage = (page) => show(`#${page}`);
+
+    // ======== สมัคร ========
+    window.submitForm = async (e) => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(e.target).entries());
+      if (!d.firstName || !d.lastName) return alert("กรอกข้อมูลให้ครบ");
+      await addDoc(collection(db, "applications"), {
+        ...d,
+        createdAt: new Date()
+      });
+      alert("ส่งข้อมูลเรียบร้อย ✅");
+      e.target.reset();
+    };
+
+    // ======== ตรวจสอบสถานะ ========
+    window.checkApplication = async () => {
+      const id = $("#checkId").value.trim();
+      const result = $("#checkResult");
+      result.innerHTML = "";
+      if (!id) return alert("กรอกเลขประจำตัวนักเรียน");
+
+      const q = query(collection(db, "applications"), where("studentId", "==", id));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        result.innerHTML = `<p class="text-red-600">ไม่พบข้อมูลการสมัคร</p>`;
+      } else {
+        const d = snap.docs[0].data();
+        result.innerHTML = `
+          <div class="p-4 bg-green-50 rounded-lg ring-1 ring-green-300">
+            <h3 class="font-bold text-green-800 mb-2">พบข้อมูลการสมัคร</h3>
+            <p><b>ชื่อ-สกุล:</b> ${d.prefix}${d.firstName} ${d.lastName}</p>
+            <p><b>ชื่อเล่น:</b> ${d.nickname}</p>
+            <p><b>ชั้น:</b> ${d.grade}/${d.room}</p>
+            <p><b>เบอร์โทร:</b> ${d.phone}</p>
+            <p><b>วันเวลาที่สมัคร:</b> ${formatDate(d.createdAt)}</p>
+          </div>
+        `;
+      }
+    };
+
+    // ======== Admin ========
+    window.adminLogin = async (e) => {
+      e.preventDefault();
+      try {
+        const email = $("#adminEmail").value;
+        const pass = $("#adminPass").value;
+        await signInWithEmailAndPassword(auth, email, pass);
+        loadApplications();
+      } catch (err) {
+        alert("เข้าสู่ระบบไม่สำเร็จ ❌");
+      }
+    };
+
+    window.logout = async () => {
+      await signOut(auth);
+      show("#adminLoginPage");
+    };
+
+    async function loadApplications() {
+      show("#adminPage");
+      const table = $("#adminTable tbody");
+      table.innerHTML = "";
+      const snap = await getDocs(collection(db, "applications"));
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        table.innerHTML += `
+          <tr class="border-b">
+            <td>${d.studentId}</td>
+            <td>${d.prefix}${d.firstName} ${d.lastName}</td>
+            <td>${d.grade}/${d.room}</td>
+            <td>${d.phone}</td>
+            <td>${formatDate(d.createdAt)}</td>
+            <td>
+              <button onclick="deleteApp('${docSnap.id}')" class="text-red-600 hover:underline">ลบ</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    window.deleteApp = async (id) => {
+      if (!confirm("ต้องการลบข้อมูลนี้?")) return;
+      await deleteDoc(doc(db, "applications", id));
+      loadApplications();
+    };
+
+    window.exportCSV = async () => {
+      const snap = await getDocs(collection(db, "applications"));
+      let csv = "เลขประจำตัว,ชื่อ-สกุล,ชื่อเล่น,ห้อง,เบอร์โทร,วันสมัคร\n";
+      snap.forEach(s => {
+        const d = s.data();
+        csv += `${d.studentId},${d.prefix}${d.firstName} ${d.lastName},${d.nickname},${d.grade}/${d.room},${d.phone},${formatDate(d.createdAt)}\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "applications.csv";
+      a.click();
+    };
+  </script>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+  <!-- Navbar -->
+  <nav class="bg-white shadow fixed w-full top-0 left-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="font-bold text-lg text-indigo-700">SPT Moral School – รับสมัครคณะกรรมการนักเรียน</h1>
+      <div class="space-x-4">
+        <button onclick="showPage('registerPage')" class="hover:text-indigo-600">สมัคร</button>
+        <button onclick="showPage('checkPage')" class="hover:text-indigo-600">ตรวจสอบ</button>
+        <button onclick="showPage('adminLoginPage')" class="hover:text-indigo-600">ผู้ดูแล</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="pt-24 max-w-3xl mx-auto px-4">
+
+    <!-- สมัคร -->
+    <section id="registerPage" class="page">
+      <h2 class="text-2xl font-bold mb-4">แบบฟอร์มสมัคร</h2>
+      <form onsubmit="submitForm(event)" class="space-y-3 bg-white p-6 rounded-lg shadow">
+        <input name="prefix" placeholder="คำนำหน้า" class="w-full border p-2 rounded" required />
+        <input name="firstName" placeholder="ชื่อ" class="w-full border p-2 rounded" required />
+        <input name="lastName" placeholder="นามสกุล" class="w-full border p-2 rounded" required />
+        <input name="nickname" placeholder="ชื่อเล่น" class="w-full border p-2 rounded" />
+        <input name="studentId" placeholder="เลขประจำตัวนักเรียน" class="w-full border p-2 rounded" required />
+        <input name="grade" placeholder="ระดับชั้น" class="w-full border p-2 rounded" required />
+        <input name="room" placeholder="ห้อง" class="w-full border p-2 rounded" required />
+        <input name="phone" placeholder="เบอร์โทรศัพท์" class="w-full border p-2 rounded" required />
+        <button class="w-full bg-indigo-600 text-white py-2 rounded">ส่งใบสมัคร</button>
+      </form>
+    </section>
+
+    <!-- ตรวจสอบ -->
+    <section id="checkPage" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">ตรวจสอบสถานะการสมัคร</h2>
+      <div class="bg-white p-6 rounded-lg shadow space-y-3">
+        <input id="checkId" placeholder="กรอกเลขประจำตัวนักเรียน" class="w-full border p-2 rounded" />
+        <button onclick="checkApplication()" class="w-full bg-indigo-600 text-white py-2 rounded">ค้นหา</button>
+        <div id="checkResult" class="mt-4"></div>
+      </div>
+    </section>
+
+    <!-- Login -->
+    <section id="adminLoginPage" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">เข้าสู่ระบบผู้ดูแล</h2>
+      <form onsubmit="adminLogin(event)" class="bg-white p-6 rounded-lg shadow space-y-3">
+        <input id="adminEmail" placeholder="อีเมล" type="email" class="w-full border p-2 rounded" required />
+        <input id="adminPass" placeholder="รหัสผ่าน" type="password" class="w-full border p-2 rounded" required />
+        <button class="w-full bg-indigo-600 text-white py-2 rounded">เข้าสู่ระบบ</button>
+      </form>
+    </section>
+
+    <!-- Admin Dashboard -->
+    <section id="adminPage" class="page hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">ข้อมูลผู้สมัครทั้งหมด</h2>
+        <div>
+          <button onclick="exportCSV()" class="bg-green-600 text-white px-3 py-1 rounded">ส่งออก CSV</button>
+          <button onclick="logout()" class="bg-gray-600 text-white px-3 py-1 rounded">ออกจากระบบ</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto bg-white rounded-lg shadow">
+        <table id="adminTable" class="w-full text-sm text-left border">
+          <thead class="bg-indigo-100">
+            <tr>
+              <th class="p-2">เลขประจำตัว</th>
+              <th class="p-2">ชื่อ-สกุล</th>
+              <th class="p-2">ชั้น/ห้อง</th>
+              <th class="p-2">เบอร์โทร</th>
+              <th class="p-2">วันสมัคร</th>
+              <th class="p-2">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
