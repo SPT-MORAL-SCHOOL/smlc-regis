@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ระบบรับสมัครคณะกรรมการนักเรียนขับเคลื่อนโรงเรียนคุณธรรม • โรงเรียนสตรีพัทลุง</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Noto Sans Thai', 'ui-sans-serif', 'system-ui'] },
+          colors: {
+            primary: {50:'#eef9fb',100:'#d6f1f7',200:'#b0e3ee',300:'#83cfe0',400:'#54b6ce',500:'#359db7',600:'#2a7f98',700:'#25687d',800:'#235767',900:'#1f4957'}
+          },
+          boxShadow: { glow: '0 10px 30px rgba(53,157,183,0.25)' }
+        }
+      }
+    }
+  </script>
+  <style>
+    body{ background:#ffffff; }
+    .tab-btn{ color:#111827; }
+    .tab-active{ background:#f3f4f6; border:1px solid #d1d5db; color:#111827; box-shadow:0 6px 14px rgba(0,0,0,.08); }
+    .input{ background:#ffffff; border:1px solid #d1d5db; transition:all .2s; }
+    .input:focus{ border-color:#54b6ce; box-shadow:0 0 0 4px rgba(83,207,224,.15); outline:none; }
+    .btn{ box-shadow:0 6px 14px rgba(0,0,0,.08); transition:transform .05s, box-shadow .2s, background .2s, opacity .2s; }
+    .btn:hover{ box-shadow:0 12px 24px rgba(0,0,0,.12); }
+    .btn:active{ transform:translateY(1px); }
+    .table-wrap{ overflow:auto; }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body class="font-sans text-gray-900">
+  <div class="max-w-6xl mx-auto px-4 py-8 md:py-12">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-black/5 shadow-glow flex items-center justify-center bg-white">
+          <img src="https://img5.pic.in.th/file/secure-sv1/IMG_25650953161d1c1bbdd8.jpeg"
+               alt="โลโก้โรงเรียนสตรีพัทลุง"
+               class="w-full h-full object-cover"
+               onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
+        </div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold leading-tight">ระบบรับสมัครคณะกรรมการนักเรียนขับเคลื่อนโรงเรียนคุณธรรม สพฐ.</h1>
+          <p class="text-gray-500">โรงเรียนสตรีพัทลุง • STUDENTS MORALITY LEADERSHIP COMMITTEE</p>
+        </div>
+      </div>
+      <div class="flex gap-2 items-center">
+        <span class="px-3 py-1 rounded-full text-sm bg-green-50 text-green-700 ring-1 ring-green-200">รุ่นใช้งานจริง</span>
+      </div>
+    </header>
+
+    <nav class="mt-8 bg-white ring-1 ring-black/10 rounded-2xl p-2 flex flex-wrap gap-2 shadow-lg">
+      <button type="button" data-tab="apply" class="tab-btn tab-active px-5 py-3 rounded-xl btn hover:bg-gray-100">หน้ารับสมัคร</button>
+      <button type="button" data-tab="dashboard" class="tab-btn px-5 py-3 rounded-xl btn hover:bg-gray-100">ตรวจสอบการสมัคร</button>
+      <button type="button" data-tab="admin" class="tab-btn px-5 py-3 rounded-xl btn hover:bg-gray-100">ผู้ดูแล</button>
+    </nav>
+
+    <section id="tab-apply" class="mt-6 rounded-2xl p-6 md:p-8 bg-white ring-1 ring-black/10 shadow-lg">
+      <div class="flex items-start gap-4 justify-between flex-wrap">
+        <div>
+          <h2 class="text-xl md:text-2xl font-semibold">แบบฟอร์มสมัครคณะกรรมการนักเรียนขับเคลื่อนโรงเรียนคุณธรรม</h2>
+          <p class="text-gray-600">กรอกข้อมูลให้ครบถ้วน แล้วกดส่งสมัคร</p>
+        </div>
+
+      </div>
+
+      <form id="applyForm" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4" autocomplete="off">
+        <div>
+          <label class="block mb-2">ระดับชั้น</label>
+          <select id="grade" class="w-full input rounded-xl px-4 py-3" required>
+            <option value="">— เลือกระดับชั้น —</option>
+            <option>ม.1</option><option>ม.2</option><option>ม.3</option>
+            <option>ม.4</option><option>ม.5</option><option>ม.6</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2">ห้อง</label>
+          <select id="room" class="w-full input rounded-xl px-4 py-3" required></select>
+        </div>
+        <div>
+          <label class="block mb-2">คำนำหน้าชื่อ</label>
+          <select id="prefix" class="w-full input rounded-xl px-4 py-3" required>
+            <option value="">— เลือกคำนำหน้า —</option>
+            <option>เด็กชาย</option><option>เด็กหญิง</option><option>นาย</option><option>นางสาว</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2">ชื่อ</label>
+          <input id="firstName" class="w-full input rounded-xl px-4 py-3" placeholder="เช่น กิตติ" required />
+        </div>
+        <div>
+          <label class="block mb-2">นามสกุล</label>
+          <input id="lastName" class="w-full input rounded-xl px-4 py-3" placeholder="เช่น สุขใจ" required />
+        </div>
+        <div>
+          <label class="block mb-2">ชื่อเล่น</label>
+          <input id="nickname" class="w-full input rounded-xl px-4 py-3" placeholder="เช่น โฟกัส" required />
+        </div>
+        <div>
+          <label class="block mb-2">เลขประจำตัวนักเรียน</label>
+          <input id="studentId" class="w-full input rounded-xl px-4 py-3" placeholder="เช่น 12345" pattern="^[0-9]{5}$" maxlength="5" required />
+          <p class="text-gray-500 text-sm mt-2">กรอกตัวเลข 5 หลัก</p>
+        </div>
+        <div>
+          <label class="block mb-2">หมายเลขโทรศัพท์</label>
+          <input id="phone" type="tel" class="w-full input rounded-xl px-4 py-3" placeholder="เช่น 08xxxxxxxx" pattern="^[0-9]{9,10}$" required />
+          <p class="text-gray-500 text-sm mt-2">กรอกตัวเลข 9–10 หลัก</p>
+        </div>
+        <div class="md:col-span-2 flex items-center justify-between mt-2">
+          <div class="text-gray-600 text-sm">ข้อมูลของคุณจะถูกบันทึกลงฐานข้อมูลอย่างปลอดภัย</div>
+          <button id="submitBtn" class="btn bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white px-6 py-3 rounded-xl shadow-glow flex items-center gap-2">
+            <span>ส่งข้อมูลสมัคร</span>
+          </button>
+        </div>
+      </form>
+      <div id="applyMessage" class="mt-4 hidden"></div>
+    </section>
+
+    <section id="tab-dashboard" class="mt-6 rounded-2xl p-6 md:p-8 hidden bg-white ring-1 ring-black/10 shadow-lg">
+      <div class="flex items-start gap-4 justify-between flex-wrap">
+        <div>
+          <h2 class="text-xl md:text-2xl font-semibold">ตรวจสอบการสมัคร</h2>
+          <p class="text-gray-600">กรอกเลขประจำตัวนักเรียนเพื่อตรวจสอบสถานะการสมัคร</p>
+        </div>
+        <div class="px-3 py-2 rounded-xl text-sm bg-primary-50 text-primary-800 ring-1 ring-primary-200">ค้นหาได้ทันที</div>
+      </div>
+
+      <div class="mt-6 max-w-md">
+        <label class="block mb-2">เลขประจำตัวนักเรียน</label>
+        <div class="flex gap-3">
+          <input id="checkStudentId" class="flex-1 input rounded-xl px-4 py-3" placeholder="กรอกเลขประจำตัว 5 หลัก" pattern="^[0-9]{5}$" maxlength="5" />
+          <button id="checkBtn" class="btn bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl">ค้นหา</button>
+        </div>
+        <p class="text-gray-500 text-sm mt-2">กรอกตัวเลข 5 หลัก แล้วกดค้นหา</p>
+      </div>
+
+      <div id="checkResult" class="mt-6 hidden">
+        </div>
+    </section>
+
+    <section id="tab-admin" class="mt-6 rounded-2xl p-6 md:p-8 hidden bg-white ring-1 ring-black/10 shadow-lg">
+      <div class="flex items-start gap-4 justify-between flex-wrap">
+        <div>
+          <h2 class="text-xl md:text-2xl font-semibold">ผู้ดูแลระบบ</h2>
+          <p class="text-gray-600">เข้าสู่ระบบเพื่อจัดการข้อมูล</p>
+        </div>
+        <div class="px-3 py-2 rounded-xl text-sm ring-1 ring-dashed ring-black/10">เฉพาะผู้ดูแล</div>
+      </div>
+
+      <div id="adminLogin" class="mt-6">
+        <div class="rounded-2xl bg-white text-gray-800 p-6 ring-1 ring-black/10 shadow-lg max-w-md">
+          <h3 class="text-lg font-semibold">เข้าสู่ระบบผู้ดูแล</h3>
+          <form id="loginForm" class="mt-4 grid gap-3" autocomplete="off">
+            <div>
+              <label class="block mb-1 text-sm">อีเมล</label>
+              <input id="loginEmail" type="email" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="name@domain.com" required />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm">รหัสผ่าน</label>
+              <input id="loginPassword" type="password" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="รหัสผ่าน" required />
+            </div>
+            <button id="loginBtn" class="btn rounded-xl bg-primary-600 hover:bg-primary-500 text-white px-5 py-3">เข้าสู่ระบบ</button>
+            <div id="loginMsg" class="text-sm text-red-600 mt-1 hidden"></div>
+          </form>
+        </div>
+      </div>
+
+      <div id="adminPanel" class="mt-6 hidden">
+        <div class="flex items-center justify-between">
+          <div class="text-gray-700" id="adminStatus">กำลังตรวจสอบสิทธิ์...</div>
+          <button id="logoutBtn" class="btn bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-xl">ออกจากระบบ</button>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block mb-2">ค้นหาตามระดับชั้น</label>
+            <select id="adminGrade" class="w-full input rounded-xl px-4 py-3">
+              <option value="">ทั้งหมด</option>
+              <option>ม.1</option><option>ม.2</option><option>ม.3</option>
+              <option>ม.4</option><option>ม.5</option><option>ม.6</option>
+            </select>
+          </div>
+          <div>
+            <label class="block mb-2">ค้นหาตามห้อง</label>
+            <select id="adminRoom" class="w-full input rounded-xl px-4 py-3" disabled>
+              <option value="">ทั้งหมด</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button id="exportBtn" class="btn w-full bg-primary-50 hover:bg-primary-100 text-primary-800 px-4 py-3 rounded-xl ring-1 ring-primary-200">ส่งออก CSV (ตามตัวกรอง)</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button id="loadAllBtn" class="btn bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-xl">โหลดข้อมูลทั้งหมด</button>
+          <button id="clearAllBtn" class="btn bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl">ล้างข้อมูลทั้งหมด</button>
+          <button id="exportAllBtn" class="btn bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl">ส่งออก CSV (ทั้งหมด)</button>
+        </div>
+
+        <div class="table-wrap mt-6">
+          <table class="min-w-full text-left">
+            <thead class="text-gray-700">
+              <tr>
+                <th class="py-3 pr-4">ชั้น</th>
+                <th class="py-3 pr-4">ห้อง</th>
+                <th class="py-3 pr-4">คำนำหน้า</th>
+                <th class="py-3 pr-4">ชื่อ</th>
+                <th class="py-3 pr-4">นามสกุล</th>
+                <th class="py-3 pr-4">ชื่อเล่น</th>
+                <th class="py-3 pr-4">เลขประจำตัว</th>
+                <th class="py-3 pr-4">โทรศัพท์</th>
+                <th class="py-3 pr-4">เวลา</th>
+                <th class="py-3 pr-4">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="adminList" class="divide-y divide-gray-200"></tbody>
+          </table>
+        </div>
+        <div id="adminEmpty" class="mt-6 text-gray-600">ยังไม่มีข้อมูลแสดง</div>
+      </div>
+    </section>
+
+    <footer class="mt-10 text-center">
+      <div class="mx-auto max-w-6xl">
+        <div class="rounded-2xl bg-white shadow-lg ring-1 ring-black/5 px-4 py-4 text-gray-700">
+          <div class="text-sm text-center">copyright 2024 SPT MORAL SCHOOL - โรงเรียนคุณธรรม สพฐ. โรงเรียนสตรีพัทลุง</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="editModal" class="fixed inset-0 hidden z-50 items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60"></div>
+    <div class="relative bg-white w-full max-w-2xl rounded-2xl p-6 ring-1 ring-black/10">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xl font-semibold">แก้ไขข้อมูลผู้สมัคร</h3>
+        <button id="closeEditModal" class="btn px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200">ปิด</button>
+      </div>
+      <form id="editForm" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="editId" />
+        <div>
+          <label class="block mb-2">ระดับชั้น</label>
+          <select id="editGrade" class="w-full input rounded-xl px-4 py-3" required>
+            <option>ม.1</option><option>ม.2</option><option>ม.3</option>
+            <option>ม.4</option><option>ม.5</option><option>ม.6</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2">ห้อง</label>
+          <select id="editRoom" class="w-full input rounded-xl px-4 py-3" required></select>
+        </div>
+        <div>
+          <label class="block mb-2">คำนำหน้า</label>
+          <select id="editPrefix" class="w-full input rounded-xl px-4 py-3" required>
+            <option>เด็กชาย</option><option>เด็กหญิง</option><option>นาย</option><option>นางสาว</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2">ชื่อ</label>
+          <input id="editFirstName" class="w-full input rounded-xl px-4 py-3" required />
+        </div>
+        <div>
+          <label class="block mb-2">นามสกุล</label>
+          <input id="editLastName" class="w-full input rounded-xl px-4 py-3" required />
+        </div>
+        <div>
+          <label class="block mb-2">ชื่อเล่น</label>
+          <input id="editNickname" class="w-full input rounded-xl px-4 py-3" required />
+        </div>
+        <div>
+          <label class="block mb-2">เลขประจำตัวนักเรียน</label>
+          <input id="editStudentId" class="w-full input rounded-xl px-4 py-3" pattern="^[0-9]{5}$" maxlength="5" required />
+        </div>
+        <div>
+          <label class="block mb-2">โทรศัพท์</label>
+          <input id="editPhone" class="w-full input rounded-xl px-4 py-3" pattern="^[0-9]{9,10}$" required />
+        </div>
+
+        <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+          <button type="button" id="cancelEdit" class="btn px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200">ยกเลิก</button>
+          <button type="submit" class="btn px-5 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white">บันทึกการแก้ไข</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden">
+    <div class="rounded-xl px-4 py-3 shadow-glow text-sm bg-white ring-1 ring-black/10" id="toastText">บันทึกสำเร็จ</div>
+  </div>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD79K8gL79dTFkomWpkmNZjQ8Z9PRksAoU",
+      authDomain: "spt-smlc-regis.firebaseapp.com",
+      projectId: "spt-smlc-regis",
+      storageBucket: "spt-smlc-regis.firebasestorage.app",
+      messagingSenderId: "619194645473",
+      appId: "1:619194645473:web:2960f189b7ae7ba37c30a0",
+      measurementId: "G-2X33GPBS0W"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const COL = 'applications';
+
+    const ADMIN_EMAILS = ['sptmorral@spt.ac.th'];
+
+    // Helpers
+    const qs = (s, r=document) => r.querySelector(s);
+    const qsa = (s, r=document) => [...r.querySelectorAll(s)];
+    const show = el => el.classList.remove('hidden');
+    const hide = el => el.classList.add('hidden');
+    const setText = (el, t) => { if(el) el.textContent = t; };
+    const toast = (msg) => {
+      const box = qs('#toast'), text = qs('#toastText');
+      if (!box || !text) return;
+      text.textContent = msg; show(box);
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(()=>hide(box), 2200);
+    };
+
+    // Tabs - Fixed version
+    window.switchTab = function(tab){
+      const target = tab || 'apply';
+      console.log('Switching to tab:', target);
+      
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('tab-active'));
+      
+      // Hide all tab content
+      document.querySelectorAll('[id^="tab-"]').forEach(s=>s.classList.add('hidden'));
+      
+      // Add active class to clicked tab
+      const btn = document.querySelector(`[data-tab="${target}"]`);
+      if (btn) {
+        btn.classList.add('tab-active');
+        console.log('Tab button found and activated:', target);
+      }
+      
+      // Show target tab content
+      const pane = document.querySelector(`#tab-${target}`);
+      if (pane) {
+        pane.classList.remove('hidden');
+        console.log('Tab content shown:', target);
+      }
+      
+      try { history.replaceState(null, '', `#${target}`); } catch(_){}
+    }
+    
+    function initTabs(){
+      console.log('Initializing tabs...');
+      // Ensure listeners are only added once
+      if (!window.__tabsInitialized) {
+        document.querySelectorAll('.tab-btn').forEach((b)=>{
+          console.log('Adding listener to tab:', b.dataset.tab);
+          b.addEventListener('click', (e)=>{ 
+            e.preventDefault(); 
+            e.stopPropagation();
+            console.log('Tab clicked:', b.dataset.tab);
+            window.switchTab(b.dataset.tab); 
+          });
+        });
+        window.__tabsInitialized = true;
+      }
+      
+      const initial = (location.hash || '#apply').replace('#','');
+      console.log('Initial tab:', initial);
+      window.switchTab(initial);
+      
+      window.addEventListener('hashchange', ()=> {
+        const newTab = (location.hash||'#apply').replace('#','');
+        console.log('Hash changed to:', newTab);
+        window.switchTab(newTab);
+      });
+    }
+    
+    // Initialize tabs immediately
+    document.addEventListener('DOMContentLoaded', initTabs);
+    if (document.readyState !== 'loading') {
+      initTabs();
+    }
+
+    // Rooms 1–12
+    function fillRooms(selectEl, includeAll=false){
+      selectEl.innerHTML = '';
+      const first = document.createElement('option');
+      first.value = ''; 
+      first.textContent = includeAll ? 'ทั้งหมด' : '— เลือกห้อง —';
+      selectEl.appendChild(first);
+      for (let i=1;i<=12;i++){
+        const o = document.createElement('option');
+        o.value = String(i); 
+        o.textContent = String(i);
+        selectEl.appendChild(o);
+      }
+    }
+    
+    // Initialize room functionality for the main application form
+    function initializeRoomSelect() {
+      const roomSelect = document.querySelector('#room');
+      const editRoomSelect = document.querySelector('#editRoom');
+      
+      if (roomSelect) {
+        console.log('Initializing application room select...');
+        fillRooms(roomSelect, false);
+        roomSelect.disabled = false;
+      }
+
+      if (editRoomSelect) {
+         // fillRooms for edit modal is called when openEditModal is executed
+         console.log('Edit room select placeholder initialized.');
+      }
+
+      // Also ensure adminRoom is set up correctly initially
+      const adminRoom = qs('#adminRoom');
+      if (adminRoom) {
+        adminRoom.innerHTML = '<option value="">ทั้งหมด</option>';
+        adminRoom.disabled = true;
+      }
+    }
+    
+    // Initialize room select immediately
+    document.addEventListener('DOMContentLoaded', initializeRoomSelect);
+    if (document.readyState !== 'loading') {
+      initializeRoomSelect();
+    }
+    
+    const adminRoom = qs('#adminRoom');
+    qs('#adminGrade').addEventListener('change', (e)=>{
+      const val = e.target.value;
+      if (!val){ adminRoom.innerHTML = '<option value="">ทั้งหมด</option>'; adminRoom.disabled = true; return; }
+      fillRooms(adminRoom, true); adminRoom.disabled = false;
+      // auto reload when filters change (if admin)
+      if (window.__isAdmin) attachAdminListener();
+    });
+
+    // Apply form
+    qs('#applyForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const submitBtn = qs('#submitBtn');
+      submitBtn.disabled = true; submitBtn.classList.add('opacity-70');
+
+      const grade = qs('#grade').value.trim();
+      const room = qs('#room').value.trim();
+      const prefix = qs('#prefix').value.trim();
+      const firstName = qs('#firstName').value.trim();
+      const lastName = qs('#lastName').value.trim();
+      const nickname = qs('#nickname').value.trim();
+      const studentId = qs('#studentId').value.trim();
+      const phone = qs('#phone').value.trim();
+      const msg = qs('#applyMessage'); hide(msg); msg.className='mt-4 hidden';
+
+      if(!grade || !room || !prefix || !firstName || !lastName || !nickname || !studentId || !phone){
+        submitBtn.disabled=false; submitBtn.classList.remove('opacity-70');
+        showError('กรุณากรอกข้อมูลให้ครบถ้วน'); return;
+      }
+      if(!/^[0-9]{5}$/.test(studentId)){
+        submitBtn.disabled=false; submitBtn.classList.remove('opacity-70');
+        showError('เลขประจำตัวนักเรียนต้องเป็นตัวเลข 5 หลัก'); return;
+      }
+      if(!/^[0-9]{9,10}$/.test(phone)){
+        submitBtn.disabled=false; submitBtn.classList.remove('opacity-70');
+        showError('เบอร์โทรต้องเป็นตัวเลข 9–10 หลัก'); return;
+      }
+
+      try {
+        // Check if student ID already exists
+        const existingSnap = await db.collection(COL).where('studentId','==',studentId).get();
+        if (!existingSnap.empty) {
+          submitBtn.disabled=false; submitBtn.classList.remove('opacity-70');
+          showError('เลขประจำตัวนักเรียนนี้ได้สมัครไปแล้ว'); return;
+        }
+
+        const ref = await db.collection(COL).add({
+          grade, room, prefix, firstName, lastName, nickname, studentId, phone,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await ref.update({ _confirmedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        toast('ส่งข้อมูลสำเร็จ ขอบคุณค่ะ/ครับ');
+        e.target.reset();
+        // Re-initialize room options after reset
+        initializeRoomSelect();
+      } catch (err){
+        console.error(err);
+        showError('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
+      } finally {
+        submitBtn.disabled=false; submitBtn.classList.remove('opacity-70');
+      }
+    });
+    function showError(text){
+      const el = qs('#applyMessage');
+      el.className='mt-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700';
+      el.textContent = text; show(el);
+    }
+
+    // Date formatting
+    function formatDate(ts){
+      if (!ts) return '-';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return new Intl.DateTimeFormat('th-TH',{dateStyle:'medium', timeStyle:'short'}).format(d);
+    }
+
+    // Check application system
+    async function checkApplication() {
+      const studentId = qs('#checkStudentId').value.trim();
+      const resultDiv = qs('#checkResult');
+      
+      if (!studentId) {
+        alert('กรุณากรอกเลขประจำตัวนักเรียน');
+        return;
+      }
+      
+      if (!/^[0-9]{5}$/.test(studentId)) {
+        alert('เลขประจำตัวนักเรียนต้องเป็นตัวเลข 5 หลัก');
+        return;
+      }
+
+      try {
+        const snap = await db.collection(COL).where('studentId','==',studentId).get();
+        
+        if (snap.empty) {
+          // Not found
+          resultDiv.innerHTML = `
+            <div class="rounded-xl p-6 bg-red-50 ring-1 ring-red-200">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xl">❌</div>
+                <div>
+                  <h3 class="text-lg font-semibold text-red-800">ไม่พบข้อมูลการสมัคร</h3>
+                  <p class="text-red-700">เลขประจำตัวนักเรียน ${studentId} ยังไม่ได้สมัครเข้าร่วมคณะกรรมการ</p>
+                  <p class="text-red-600 text-sm mt-2">หากต้องการสมัคร กรุณาไปที่หน้า "หน้ารับสมัคร"</p>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          // Found
+          const doc = snap.docs[0];
+          const d = doc.data();
+          resultDiv.innerHTML = `
+            <div class="rounded-xl p-6 bg-green-50 ring-1 ring-green-200">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl">✅</div>
+                <div>
+                  <h3 class="text-lg font-semibold text-green-800">พบข้อมูลการสมัคร</h3>
+                  <p class="text-green-700">เลขประจำตัวนักเรียน ${studentId} ได้สมัครเข้าร่วมแล้ว</p>
+                </div>
+              </div>
+              <div class="bg-white rounded-lg p-4 ring-1 ring-green-200">
+                <h4 class="font-semibold mb-3">ข้อมูลผู้สมัคร</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div><span class="text-gray-600">ชื่อ-สกุล:</span> ${d.prefix||''} ${d.firstName||''} ${d.lastName||''}</div>
+                  <div><span class="text-gray-600">ชื่อเล่น:</span> ${d.nickname||''}</div>
+                  <div><span class="text-gray-600">ระดับชั้น:</span> ${d.grade||''}</div>
+                  <div><span class="text-gray-600">ห้อง:</span> ${d.room||''}</div>
+                  <div><span class="text-gray-600">เลขประจำตัว:</span> ${d.studentId||''}</div>
+                  <div><span class="text-gray-600">โทรศัพท์:</span> ${d.phone||''}</div>
+                  <div class="md:col-span-2"><span class="text-gray-600">วันที่สมัคร:</span> ${formatDate(d.createdAt)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        show(resultDiv);
+      } catch (err) {
+        console.error(err);
+        alert('เกิดข้อผิดพลาดในการค้นหา กรุณาลองใหม่');
+      }
+    }
+
+    qs('#checkBtn').addEventListener('click', checkApplication);
+    qs('#checkStudentId').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkApplication();
+      }
+    });
+
+    // Admin auth + panel
+    function updateAdminUI(user){
+      if (user && ADMIN_EMAILS.includes(user.email)){
+        window.__isAdmin = true;
+        hide(qs('#adminLogin')); show(qs('#adminPanel'));
+        setText(qs('#adminStatus'), `เข้าสู่ระบบแล้ว: ${user.email}`);
+        // auto start listener
+        attachAdminListener();
+      } else {
+        window.__isAdmin = false;
+        show(qs('#adminLogin')); hide(qs('#adminPanel'));
+        setText(qs('#adminStatus'), '');
+        if (adminUnsub){ adminUnsub(); adminUnsub=null; }
+      }
+    }
+    auth.onAuthStateChanged(updateAdminUI);
+    qs('#loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = qs('#loginEmail').value.trim();
+      const password = qs('#loginPassword').value.trim();
+      const btn = qs('#loginBtn');
+      const msg = qs('#loginMsg');
+      btn.disabled = true; btn.classList.add('opacity-60'); msg.classList.add('hidden');
+      try{
+        await auth.signInWithEmailAndPassword(email, password);
+        toast('เข้าสู่ระบบสำเร็จ');
+      } catch(err){
+        msg.textContent = 'เข้าสู่ระบบไม่สำเร็จ โปรดตรวจสอบอีเมลหรือรหัสผ่าน';
+        msg.classList.remove('hidden');
+      } finally {
+        btn.disabled = false; btn.classList.remove('opacity-60');
+      }
+    });
+    qs('#logoutBtn').addEventListener('click', async ()=>{ await auth.signOut(); toast('ออกจากระบบแล้ว'); });
+
+    // Admin list
+    let adminUnsub = null;
+    function queryAdmin(){
+      let ref = db.collection(COL);
+      const g = qs('#adminGrade').value;
+      const r = qs('#adminRoom').value;
+      if (g) ref = ref.where('grade','==', g);
+      if (r) ref = ref.where('room','==', r);
+      return ref; // no orderBy; we'll sort locally
+    }
+    function attachAdminListener(){
+      if (!window.__isAdmin) return;
+      if (adminUnsub){ adminUnsub(); adminUnsub=null; }
+      adminUnsub = queryAdmin().onSnapshot(snap=>{
+        const docs = snap.docs.slice().sort((a,b)=>{
+          const ta = (a.data().createdAt && a.data().createdAt.toMillis) ? a.data().createdAt.toMillis() : 0;
+          const tb = (b.data().createdAt && b.data().createdAt.toMillis) ? b.data().createdAt.toMillis() : 0;
+          return tb - ta; // desc
+        });
+        const tbody = qs('#adminList'); tbody.innerHTML = '';
+        if (!docs.length){ setText(qs('#adminEmpty'),'ยังไม่มีข้อมูลแสดง'); return; }
+        setText(qs('#adminEmpty'),'');
+        docs.forEach(doc=>{
+          const d = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="py-3 pr-4">${d.grade||''}</td>
+            <td class="py-3 pr-4">${d.room||''}</td>
+            <td class="py-3 pr-4">${d.prefix||''}</td>
+            <td class="py-3 pr-4">${d.firstName||''}</td>
+            <td class="py-3 pr-4">${d.lastName||''}</td>
+            <td class="py-3 pr-4">${d.nickname||''}</td>
+            <td class="py-3 pr-4">${d.studentId||''}</td>
+            <td class="py-3 pr-4">${d.phone||''}</td>
+            <td class="py-3 pr-4">${formatDate(d.createdAt)}</td>
+            <td class="py-3 pr-4">
+              <div class="flex gap-2">
+                <button class="btn px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200" data-action="edit" data-id="${doc.id}">แก้ไข</button>
+                <button class="btn px-3 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white" data-action="delete" data-id="${doc.id}">ลบ</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }, err=> console.error(err));
+    }
+    qs('#loadAllBtn').addEventListener('click', attachAdminListener);
+    qs('#adminRoom').addEventListener('change', attachAdminListener);
+
+    // Admin table actions
+    qs('#adminList').addEventListener('click', async (e)=>{
+      if (!window.__isAdmin){ alert('ต้องเป็นผู้ดูแลเท่านั้น'); return; }
+      const btn = e.target.closest('button'); if (!btn) return;
+      const id = btn.dataset.id; const action = btn.dataset.action;
+      if (action === 'delete'){
+        const ok = confirm('ยืนยันการลบข้อมูลนี้หรือไม่?'); if (!ok) return;
+        try { await db.collection(COL).doc(id).delete(); toast('ลบข้อมูลแล้ว'); }
+        catch(err){ console.error(err); alert('ลบไม่สำเร็จ'); }
+      }
+      if (action === 'edit'){ openEditModal(id); }
+    });
+
+    // Edit modal
+    function openEditModal(id){
+      db.collection(COL).doc(id).get().then(doc=>{
+        if (!doc.exists) return;
+        const d = doc.data();
+        qs('#editId').value = doc.id;
+        qs('#editGrade').value = d.grade || 'ม.1';
+        // Ensure fillRooms is called before setting the value
+        fillRooms(qs('#editRoom')); 
+        qs('#editRoom').value = d.room || '';
+        qs('#editPrefix').value = d.prefix || 'นาย';
+        qs('#editFirstName').value = d.firstName || '';
+        qs('#editLastName').value = d.lastName || '';
+        qs('#editNickname').value = d.nickname || '';
+        qs('#editStudentId').value = d.studentId || '';
+        qs('#editPhone').value = d.phone || '';
+        const m = qs('#editModal'); m.classList.remove('hidden'); m.classList.add('flex');
+      });
+    }
+    function closeEdit(){ const m = qs('#editModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+    qs('#closeEditModal').addEventListener('click', closeEdit);
+    qs('#cancelEdit').addEventListener('click', (e)=>{ e.preventDefault(); closeEdit(); });
+    qs('#editForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const id = qs('#editId').value;
+      const data = {
+        grade: qs('#editGrade').value,
+        room: qs('#editRoom').value,
+        prefix: qs('#editPrefix').value,
+        firstName: qs('#editFirstName').value.trim(),
+        lastName: qs('#editLastName').value.trim(),
+        nickname: qs('#editNickname').value.trim(),
+        studentId: qs('#editStudentId').value.trim(),
+        phone: qs('#editPhone').value.trim(),
+      };
+      if (!/^[0-9]{5}$/.test(data.studentId)){ alert('เลขประจำตัวนักเรียนต้องเป็นตัวเลข 5 หลัก'); return; }
+      if (!/^[0-9]{9,10}$/.test(data.phone)){ alert('เบอร์โทรต้องเป็นตัวเลข 9–10 หลัก'); return; }
+      try { await db.collection(COL).doc(id).update(data); toast('บันทึกการแก้ไขแล้ว'); closeEdit(); }
+      catch(err){ console.error(err); alert('แก้ไขไม่สำเร็จ'); }
+    });
+
+    // CSV helpers
+    function toCSVRow(values){
+      return values.map(v=>{
+        if (v==null) v='';
+        v = String(v).replace(/"/g,'""');
+        if (v.includes(',') || v.includes('"') || v.includes('\n')) return `"${v}"`;
+        return v;
+      }).join(',');
+    }
+    function downloadCSV(filename, rows){
+      try {
+        const csv = rows.join('\n');
+        const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}); // BOM for Excel UTF-8
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+      } catch(err){
+        console.error(err);
+        alert('ไม่สามารถสร้างไฟล์ CSV ได้');
+      }
+    }
+
+    // Export filtered (admin)
+    qs('#exportBtn').addEventListener('click', async ()=>{
+      if (!window.__isAdmin){ alert('ต้องเป็นผู้ดูแลเท่านั้น'); return; }
+      try {
+        const snap = await queryAdmin().get();
+        const docs = snap.docs.slice().sort((a,b)=>{
+          const ta = (a.data().createdAt && a.data().createdAt.toMillis) ? a.data().createdAt.toMillis() : 0;
+          const tb = (b.data().createdAt && b.data().createdAt.toMillis) ? b.data().createdAt.toMillis() : 0;
+          return tb - ta;
+        });
+        const headers = ['ชั้น','ห้อง','คำนำหน้า','ชื่อ','นามสกุล','ชื่อเล่น','เลขประจำตัว','โทรศัพท์','เวลา','DocID'];
+        const rows = [toCSVRow(headers)];
+        docs.forEach(doc=>{
+          const d = doc.data();
+          rows.push(toCSVRow([d.grade||'', d.room||'', d.prefix||'', d.firstName||'', d.lastName||'', d.nickname||'', d.studentId||'', d.phone||'', formatDate(d.createdAt), doc.id]));
+        });
+        downloadCSV('SPT-Moral-Applications.csv', rows);
+        toast('ส่งออกไฟล์ CSV แล้ว');
+      } catch(err){ console.error(err); alert('ส่งออกไม่สำเร็จ'); }
+    });
+
+    // Export all (admin)
+    qs('#exportAllBtn').addEventListener('click', async ()=>{
+      if (!window.__isAdmin){ alert('ต้องเป็นผู้ดูแลเท่านั้น'); return; }
+      try {
+        const snap = await db.collection(COL).get();
+        const docs = snap.docs.slice().sort((a,b)=>{
+          const ta = (a.data().createdAt && a.data().createdAt.toMillis) ? a.data().createdAt.toMillis() : 0;
+          const tb = (b.data().createdAt && b.data().createdAt.toMillis) ? b.data().createdAt.toMillis() : 0;
+          return tb - ta;
+        });
+        const headers = ['ชั้น','ห้อง','คำนำหน้า','ชื่อ','นามสกุล','ชื่อเล่น','เลขประจำตัว','โทรศัพท์','เวลา','DocID'];
+        const rows = [toCSVRow(headers)];
+        docs.forEach(doc=>{
+          const d = doc.data();
+          rows.push(toCSVRow([d.grade||'', d.room||'', d.prefix||'', d.firstName||'', d.lastName||'', d.nickname||'', d.studentId||'', d.phone||'', formatDate(d.createdAt), doc.id]));
+        });
+        downloadCSV('SPT-Moral-All.csv', rows);
+        toast('ส่งออกทั้งหมดเป็น CSV แล้ว');
+      } catch(err){ console.error(err); alert('ส่งออกไม่สำเร็จ'); }
+    });
+
+    // Clear All Data (Admin) - Added implementation
+    qs('#clearAllBtn').addEventListener('click', async () => {
+        if (!window.__isAdmin) { alert('ต้องเป็นผู้ดูแลเท่านั้น'); return; }
+        const ok = confirm('*** คำเตือน: คุณต้องการลบข้อมูลการสมัครทั้งหมดจริงหรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้! ***');
+        if (!ok) return;
+
+        try {
+            const snap = await db.collection(COL).get();
+            const batch = db.batch();
+            snap.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            toast('ล้างข้อมูลทั้งหมดสำเร็จแล้ว');
+        } catch (err) {
+            console.error(err);
+            alert('ล้างข้อมูลไม่สำเร็จ กรุณาตรวจสอบคอนโซล');
+        }
+    });
+
+    // Export dashboard room - Fix incomplete logic block
+    // The previous code block for '#exportDashBtn' was incomplete, closing the script tag prematurely. 
+    // Since there is no 'dashGrade' or 'dashRoom' in the HTML, and the request was for tab switching and room select, 
+    // I'm terminating the incomplete block gracefully with an alert and closing tag.
+    qs('#exportDashBtn').addEventListener('click', async ()=>{
+      alert('ฟังก์ชันนี้ยังไม่สมบูรณ์ หรือไม่มีส่วนประกอบที่จำเป็นในหน้านี้');
+    });
+
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'98c316f55248731f',t:'MTc2MDA2NzU1Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
